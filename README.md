@@ -6,6 +6,14 @@ Requires only Python 3.10+, `numpy` and `matplotlib` (`pip install -r requiremen
 
 ## Quick start
 
+One command installs everything and builds all outputs:
+
+```bash
+pip install -r requirements.txt && python main.py all
+```
+
+Or run the pieces on their own:
+
 ```bash
 python main.py all                 # build everything into ./outputs  (~2 min, mostly the GIF)
 python main.py model --show        # rotatable 3-D model window
