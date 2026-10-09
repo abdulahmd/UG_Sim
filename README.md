@@ -6,12 +6,27 @@ Requires only Python 3.10+, `numpy` and `matplotlib` (`pip install -r requiremen
 
 ## Quick start
 
-One command installs everything, runs the whole simulation and opens each result in a window
-(rotatable 3-D garage model, traffic charts, live animated parking map, lifecycle and policy comparison).
-Close each window to move on to the next; everything is also saved to `./outputs`:
+```bash
+pip install -r requirements.txt
+python main.py dashboard           # everything at once in one window
+python main.py ui                  # the same window plus sliders to change parameters
+```
+
+`dashboard` shows every result in a grid: the rotatable 3-D model (drag to rotate), the animated parking map
+of every level, occupancy and CO for the day, and the lifecycle cost of each maintenance policy. Press space
+to pause the parking map, and click the occupancy or CO chart to jump to that time of day.
+
+`ui` adds a parameter panel (demand, gate lanes, closed stalls, broken fans, levels, footprint, fans,
+years, growth, sump pumps, discount rate, Monte-Carlo runs, seed, ventilation mode). Move the sliders and
+press **Run** to re-simulate. **Save** writes the settings to `params.json` (or the `--config` file) for use
+with the other commands. Both views take about 10 s to open; `--reps 2` makes them faster and `--config params.json`
+starts from a saved file.
+
+To build every image, CAD file and the GIF into `./outputs` and open each result in its own window
+(close one to see the next):
 
 ```bash
-pip install -r requirements.txt && python main.py all --show
+python main.py all --show
 ```
 
 Or run the pieces on their own:

@@ -8,6 +8,8 @@ UTD underground parking garage simulator.
     python main.py maintenance    20-year maintenance & lifecycle run for one policy
     python main.py compare        Monte-Carlo trade study of maintenance policies
     python main.py all            everything above
+    python main.py dashboard      every result at once in one window (live parking map, rotatable 3-D model)
+    python main.py ui             the dashboard plus sliders to change parameters and re-run
     python main.py config         write params.json to edit, then use --config params.json
 
 Add --show to open interactive windows (the 3-D model can be rotated with the mouse).
@@ -62,6 +64,11 @@ def parse(argv):
     a = sub.add_parser("all", parents=[c], help="run everything")
     a.add_argument("--reps", type=int, default=15)
 
+    for name, hlp in (("dashboard", "all results at once in one live window"),
+                      ("ui", "dashboard with a parameter panel")):
+        d = sub.add_parser(name, parents=[c], help=hlp)
+        d.add_argument("--reps", type=int, default=5, help="Monte-Carlo runs per policy")
+
     cf = sub.add_parser("config", help="write the default parameters to a JSON file")
     cf.add_argument("--path", default="params.json")
     return ap.parse_args(argv)
@@ -70,7 +77,8 @@ def parse(argv):
 def main(argv=None):
     args = parse(argv if argv is not None else sys.argv[1:])
     import matplotlib
-    if not getattr(args, "show", False):
+    interactive = args.cmd in ("dashboard", "ui")
+    if not (getattr(args, "show", False) or interactive):
         matplotlib.use("Agg")
 
     from garage_sim.config import SimConfig
@@ -80,6 +88,11 @@ def main(argv=None):
         return
 
     cfg = SimConfig.from_json(args.config) if args.config else SimConfig()
+    if interactive:
+        from garage_sim import dashboard
+        dashboard.run(cfg, dashboard.RunSettings(seed=args.seed, reps=args.reps), controls=args.cmd == "ui",
+                      config_path=args.config)
+        return
     os.makedirs(args.out, exist_ok=True)
     cmds = ["model", "traffic", "animate", "maintenance", "compare"] if args.cmd == "all" else [args.cmd]
     for cmd in cmds:

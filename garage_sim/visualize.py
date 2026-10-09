@@ -45,6 +45,13 @@ def render_3d(garage: Garage, path=None, show=False, title=None, elev=26, azim=-
     """cars: optional list of (stall_id, colour) to place vehicles in stalls."""
     fig = plt.figure(figsize=(14, 9))
     ax = fig.add_subplot(projection="3d")
+    draw_3d(ax, garage, title=title, elev=elev, azim=azim, cars=cars, hide_roof=hide_roof,
+            z_exaggeration=z_exaggeration)
+    _finish(fig, path, show)
+
+
+def draw_3d(ax, garage: Garage, title=None, elev=26, azim=-58, cars=None, hide_roof=True, z_exaggeration=1.0,
+            legend_size=8, zoom=1.0):
     ax.computed_zorder = False  # matplotlib's depth sort fails on big slabs; paint bottom-up instead
 
     # painter's order: walls, then each level from the deepest up (its slab first, then what sits on it)
@@ -76,9 +83,9 @@ def render_3d(garage: Garage, path=None, show=False, title=None, elev=26, azim=-
     ax.set_xlim(lo[0], hi[0])
     ax.set_ylim(lo[1], hi[1])
     ax.set_zlim(lo[2], hi[2])
-    ax.set_box_aspect((hi - lo) * np.array([1, 1, z_exaggeration]))
+    ax.set_box_aspect((hi - lo) * np.array([1, 1, z_exaggeration]), zoom=zoom)
     for k, z in enumerate(garage.floor_z):
-        ax.text(garage.L + 4, garage.W / 2, z + 1.0, f"B{k + 1}", fontsize=12, weight="bold", color=INK)
+        ax.text(garage.L + 4, garage.W / 2, z + 1.0, f"B{k + 1}", fontsize=legend_size + 4, weight="bold", color=INK)
     ax.view_init(elev=elev, azim=azim)
     ax.set_xlabel("x (m)")
     ax.set_ylabel("y (m)")
@@ -94,8 +101,7 @@ def render_3d(garage: Garage, path=None, show=False, title=None, elev=26, azim=-
         for u, c in USER_COLORS.items():
             handles.append(Rectangle((0, 0), 1, 1, fc=c))
             labels.append(f"{u} car")
-    ax.legend(handles, labels, loc="upper left", fontsize=8, ncol=2)
-    _finish(fig, path, show)
+    ax.legend(handles, labels, loc="upper left", fontsize=legend_size, ncol=2)
 
 
 # --------------------------------------------------------------------------- #
@@ -164,18 +170,38 @@ def plot_floorplans(garage: Garage, path=None, show=False):
 # --------------------------------------------------------------------------- #
 # one-day traffic results
 # --------------------------------------------------------------------------- #
+def draw_occupancy(ax, res, garage: Garage):
+    hours = res.t / 60
+    cap = res.summary["open_stalls"]
+    ax.stackplot(hours, res.occupancy.T, colors=[level_color(k) for k in range(garage.n_levels)],
+                 labels=[f"B{k + 1}" for k in range(garage.n_levels)], edgecolor="#fcfcfb", linewidth=1.0)
+    ax.axhline(cap, color=INK2, ls="--", lw=1.2)
+    ax.text(hours[0] + 0.2, cap + 8, f"capacity {cap}", color=INK2, fontsize=8)
+    ax.set(title="Parked vehicles by level", xlabel="hour of day", ylabel="vehicles", xlim=(hours[0], hours[-1]))
+    ax.legend(loc="center right")
+
+
+def draw_co(ax, res, garage: Garage, tp, labels_inside=False):
+    hours = res.t / 60
+    for k in range(garage.n_levels):
+        ax.plot(hours, res.co_ppm[:, k], color=level_color(k), label=f"B{k + 1}")
+    for val, name in ((tp.co_alarm_ppm, "alarm"), (tp.co_limit_ppm, "1-h limit")):
+        ax.axhline(val, color=MUTED, ls="--", lw=1)
+        if labels_inside:
+            ax.text(hours[-1], val, f"{name} {val:g} ppm", ha="right", va="bottom", fontsize=7, color=INK2)
+        else:
+            ax.text(hours[-1], val, f" {name} {val:g} ppm", va="center", fontsize=8, color=INK2)
+    ax.set(title="Carbon monoxide by level", xlabel="hour of day", ylabel="CO (ppm)", xlim=(hours[0], hours[-1]),
+           ylim=(0, max(tp.co_limit_ppm * 1.15, res.co_ppm.max() * 1.1)))
+    ax.legend(loc="upper left")
+
+
 def plot_traffic(res, garage: Garage, tp, path=None, show=False):
     hours = res.t / 60
     fig, axes = plt.subplots(2, 2, figsize=(14, 8.5))
     s = res.summary
 
-    ax = axes[0, 0]
-    ax.stackplot(hours, res.occupancy.T, colors=[level_color(k) for k in range(garage.n_levels)],
-                 labels=[f"B{k + 1}" for k in range(garage.n_levels)], edgecolor="#fcfcfb", linewidth=1.0)
-    ax.axhline(s["open_stalls"], color=INK2, ls="--", lw=1.2)
-    ax.text(hours[0] + 0.2, s["open_stalls"] + 8, f"capacity {s['open_stalls']}", color=INK2, fontsize=8)
-    ax.set(title="Parked vehicles by level", xlabel="hour of day", ylabel="vehicles", xlim=(hours[0], hours[-1]))
-    ax.legend(loc="center right")
+    draw_occupancy(axes[0, 0], res, garage)
 
     ax = axes[0, 1]
     ax.plot(hours, res.entry_queue, color=SERIES[0], label="entry gate queue")
@@ -183,16 +209,8 @@ def plot_traffic(res, garage: Garage, tp, path=None, show=False):
     ax.set(title="Gate queues", xlabel="hour of day", ylabel="vehicles waiting", xlim=(hours[0], hours[-1]))
     ax.legend(loc="upper right")
 
-    ax = axes[1, 0]
-    for k in range(garage.n_levels):
-        ax.plot(hours, res.co_ppm[:, k], color=level_color(k), label=f"B{k + 1}")
-    for val, name in ((tp.co_alarm_ppm, "alarm"), (tp.co_limit_ppm, "1-h limit")):
-        ax.axhline(val, color=MUTED, ls="--", lw=1)
-        ax.text(hours[-1], val, f" {name} {val:g} ppm", va="center", fontsize=8, color=INK2)
-    ax.set(title=f"Carbon monoxide by level ({tp.ventilation_mode}-controlled ventilation)",
-           xlabel="hour of day", ylabel="CO (ppm)", xlim=(hours[0], hours[-1]),
-           ylim=(0, max(tp.co_limit_ppm * 1.15, res.co_ppm.max() * 1.1)))
-    ax.legend(loc="upper left")
+    draw_co(axes[1, 0], res, garage, tp)
+    axes[1, 0].set_title(f"Carbon monoxide by level ({tp.ventilation_mode}-controlled ventilation)")
 
     ax = axes[1, 1]
     for k in range(garage.n_levels):
@@ -305,37 +323,46 @@ def plot_lifecycle(res, cfg, path=None, show=False):
     _finish(fig, path, show)
 
 
-def plot_compare(results: dict, cfg, path=None, show=False):
+def policy_colors(names) -> dict:
+    return {n: SERIES[i % len(SERIES)] for i, n in enumerate(names)}
+
+
+def draw_policy_box(ax, results: dict, key, scale, title, ylabel):
     from .maintenance import summarize_runs
     names = list(results)
-    cols = {n: SERIES[i % len(SERIES)] for i, n in enumerate(names)}
-    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
-
-    def box(ax, key, scale, title, ylabel):
-        data = [[r.summary[key] * scale for r in results[n]] for n in names]
-        bp = ax.boxplot(data, patch_artist=True, widths=0.5, medianprops=dict(color=INK, lw=1.5))
-        labels = []
-        for n in names:
-            m, h = summarize_runs(results[n], key)
-            labels.append(f"{n}\nmean {m * scale:,.2f} ± {h * scale:,.2f}")
-        ax.set_xticks(range(1, len(names) + 1), labels)
-        for patch, n in zip(bp["boxes"], names):
-            patch.set_facecolor(cols[n])
-            patch.set_alpha(0.75)
-        ax.set(title=title, ylabel=ylabel)
-
-    box(axes[0, 0], "lcc_npv", 1e-6, "Lifecycle cost (NPV, owner)", "$ millions")
-    box(axes[0, 1], "availability", 100, "Stall availability", "% of stall-days open")
-
-    ax = axes[1, 0]
+    cols = policy_colors(names)
+    data = [[r.summary[key] * scale for r in results[n]] for n in names]
+    bp = ax.boxplot(data, patch_artist=True, widths=0.5, medianprops=dict(color=INK, lw=1.5))
+    labels = []
     for n in names:
-        curves = np.array([np.cumsum([a["owner_discounted"] for a in r.annual]) for r in results[n]]) / 1e6
-        years = [a["year"] for a in results[n][0].annual]
+        m, h = summarize_runs(results[n], key)
+        labels.append(f"{n}\nmean {m * scale:,.2f} ± {h * scale:,.2f}")
+    ax.set_xticks(range(1, len(names) + 1), labels)
+    for patch, n in zip(bp["boxes"], names):
+        patch.set_facecolor(cols[n])
+        patch.set_alpha(0.75)
+    ax.set(title=title, ylabel=ylabel)
+
+
+def draw_cumulative_cost(ax, results: dict):
+    cols = policy_colors(results)
+    for n, runs in results.items():
+        curves = np.array([np.cumsum([a["owner_discounted"] for a in r.annual]) for r in runs]) / 1e6
+        years = [a["year"] for a in runs[0].annual]
         ax.plot(years, curves.mean(0), color=cols[n], label=n)
         ax.fill_between(years, np.percentile(curves, 10, 0), np.percentile(curves, 90, 0), color=cols[n], alpha=0.15)
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.set(title="Cumulative discounted cost (mean, 10-90% band)", ylabel="$ millions")
     ax.legend(loc="upper left")
+
+
+def plot_compare(results: dict, cfg, path=None, show=False):
+    names = list(results)
+    cols = policy_colors(names)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+    draw_policy_box(axes[0, 0], results, "lcc_npv", 1e-6, "Lifecycle cost (NPV, owner)", "$ millions")
+    draw_policy_box(axes[0, 1], results, "availability", 100, "Stall availability", "% of stall-days open")
+    draw_cumulative_cost(axes[1, 0], results)
 
     ax = axes[1, 1]
     keys = [("floods", "floods"), ("emergency_repairs", "emergency repairs"), ("planned_repairs", "planned repairs"),
@@ -368,45 +395,88 @@ def _along(path_pts, cum, frac):
     return x0 + u * (x1 - x0), y0 + u * (y1 - y0)
 
 
+class DayReplay:
+    """Moves the cars of one simulated day around the floor plans. Shared by the
+    GIF animation and the dashboard."""
+
+    def __init__(self, res, garage: Garage):
+        self.garage = garage
+        cars = [c for c in res.cars if c.stall >= 0 and c.t_parked == c.t_parked]
+        inf = np.inf
+        self.lvl = np.array([garage.stalls[c.stall].level for c in cars], dtype=int)
+        self.sx = np.array([garage.stalls[c.stall].cx for c in cars])
+        self.sy = np.array([garage.stalls[c.stall].cy for c in cars])
+        self.col = np.array([USER_COLORS[c.utype] for c in cars])
+        self.t_gd = np.array([c.t_gate_done for c in cars])
+        self.t_pk = np.array([c.t_parked for c in cars])
+        self.t_lv = np.array([c.t_leave if c.t_leave == c.t_leave else inf for c in cars])
+        self.t_xa = np.array([c.t_exit_queue if c.t_exit_queue == c.t_exit_queue else inf for c in cars])
+        self.paths = {}
+        for c in cars:
+            if c.stall not in self.paths:
+                pts = garage.stalls[c.stall].path
+                seg = np.hypot(*np.diff(np.array(pts), axis=0).T)
+                self.paths[c.stall] = (pts, np.concatenate([[0], np.cumsum(seg)]))
+        self.sid = np.array([c.stall for c in cars], dtype=int)
+        self.parked_sc, self.moving_sc = [], []
+
+    def setup(self, plan_axes, parked_size=16, moving_size=34):
+        """Draw the floor plans into plan_axes (one per level) and add the car markers."""
+        for k, ax in enumerate(plan_axes):
+            draw_plan(ax, self.garage, k, stall_alpha=0.45)
+            ax.set_title(f"B{k + 1}", loc="left")
+            self.parked_sc.append(ax.scatter([], [], s=parked_size, marker="s", zorder=5))
+            self.moving_sc.append(ax.scatter([], [], s=moving_size, marker="o", edgecolors=INK, linewidths=0.8,
+                                             zorder=6))
+        return self.parked_sc + self.moving_sc
+
+    def legend(self, ax, **kw):
+        handles = [plt.Line2D([], [], marker="s", ls="", color=c) for c in USER_COLORS.values()]
+        handles.append(plt.Line2D([], [], marker="o", ls="", mfc="white", mec=INK))
+        ax.legend(handles, [*USER_COLORS, "driving"], **{"ncol": 4, **kw})
+
+    def by_type(self, t):
+        """Parked vehicles of each driver type at each time in t."""
+        return [((self.t_pk[None, :] <= t[:, None]) & (t[:, None] < self.t_lv[None, :]) & (self.col == c)[None, :])
+                .sum(1) for c in USER_COLORS.values()]
+
+    def update(self, t):
+        """Move the markers to minute t. Returns (parked, driving) counts."""
+        parked = (self.t_pk <= t) & (t < self.t_lv)
+        inbound = (self.t_gd <= t) & (t < self.t_pk)
+        outbound = (self.t_lv <= t) & (t < self.t_xa)
+        for k in range(len(self.parked_sc)):
+            m = parked & (self.lvl == k)
+            self.parked_sc[k].set_offsets(np.column_stack([self.sx[m], self.sy[m]]) if m.any() else np.empty((0, 2)))
+            self.parked_sc[k].set_facecolors(self.col[m])
+            pos, cols = [], []
+            for i in np.flatnonzero((inbound | outbound) & (self.lvl == k)):
+                pts, cum = self.paths[self.sid[i]]
+                if inbound[i]:
+                    frac = (t - self.t_gd[i]) / max(1e-6, self.t_pk[i] - self.t_gd[i])
+                else:
+                    frac = 1 - (t - self.t_lv[i]) / max(1e-6, self.t_xa[i] - self.t_lv[i])
+                pos.append(_along(pts, cum, float(np.clip(frac, 0, 1))))
+                cols.append(self.col[i])
+            self.moving_sc[k].set_offsets(np.array(pos) if pos else np.empty((0, 2)))
+            self.moving_sc[k].set_facecolors(cols if cols else [])
+        return int(parked.sum()), int((inbound | outbound).sum())
+
+
 def animate_day(res, garage: Garage, tp, path=None, show=False, step_min=2.0, fps=15,
                 t_start=6 * 60, t_end=23 * 60):
     n = garage.n_levels
-    cars = [c for c in res.cars if c.stall >= 0 and c.t_parked == c.t_parked]
-    inf = np.inf
-    lvl = np.array([garage.stalls[c.stall].level for c in cars])
-    sx = np.array([garage.stalls[c.stall].cx for c in cars])
-    sy = np.array([garage.stalls[c.stall].cy for c in cars])
-    col = np.array([USER_COLORS[c.utype] for c in cars])
-    t_gd = np.array([c.t_gate_done for c in cars])
-    t_pk = np.array([c.t_parked for c in cars])
-    t_lv = np.array([c.t_leave if c.t_leave == c.t_leave else inf for c in cars])
-    t_xa = np.array([c.t_exit_queue if c.t_exit_queue == c.t_exit_queue else inf for c in cars])
-    paths = {}
-    for c in cars:
-        pts = garage.stalls[c.stall].path
-        if c.stall not in paths:
-            seg = np.hypot(*np.diff(np.array(pts), axis=0).T)
-            paths[c.stall] = (pts, np.concatenate([[0], np.cumsum(seg)]))
-    sid = np.array([c.stall for c in cars])
+    replay = DayReplay(res, garage)
 
     fig = plt.figure(figsize=(15, 3.3 * n + 0.6))
     gs = fig.add_gridspec(n, 2, width_ratios=[2.3, 1])
     plan_axes = [fig.add_subplot(gs[k, 0]) for k in range(n)]
-    parked_sc, moving_sc = [], []
-    for k, ax in enumerate(plan_axes):
-        draw_plan(ax, garage, k, stall_alpha=0.45)
-        ax.set_title(f"B{k + 1}", loc="left")
-        parked_sc.append(ax.scatter([], [], s=16, marker="s", zorder=5))
-        moving_sc.append(ax.scatter([], [], s=34, marker="o", edgecolors=INK, linewidths=0.8, zorder=6))
-    handles = [plt.Line2D([], [], marker="s", ls="", color=c) for c in USER_COLORS.values()]
-    handles.append(plt.Line2D([], [], marker="o", ls="", mfc="white", mec=INK))
-    plan_axes[0].legend(handles, [*USER_COLORS, "driving"], loc="upper right", bbox_to_anchor=(1.0, 1.25), ncol=4)
+    replay.setup(plan_axes)
+    replay.legend(plan_axes[0], loc="upper right", bbox_to_anchor=(1.0, 1.25))
 
     ax_occ = fig.add_subplot(gs[: max(1, n // 2 + (n % 2)), 1])
     hours = res.t / 60
-    by_type = [((t_pk[None, :] <= res.t[:, None]) & (res.t[:, None] < t_lv[None, :]) & (col == c)[None, :]).sum(1)
-               for c in USER_COLORS.values()]
-    ax_occ.stackplot(hours, by_type, colors=list(USER_COLORS.values()), labels=list(USER_COLORS),
+    ax_occ.stackplot(hours, replay.by_type(res.t), colors=list(USER_COLORS.values()), labels=list(USER_COLORS),
                      edgecolor="#fcfcfb", linewidth=0.8)
     ax_occ.axhline(res.summary["open_stalls"], color=INK2, ls="--", lw=1)
     ax_occ.set(title="Parked vehicles by driver type", xlim=(t_start / 60, t_end / 60))
@@ -432,26 +502,9 @@ def animate_day(res, garage: Garage, tp, path=None, show=False, step_min=2.0, fp
     frames = np.arange(t_start, t_end, step_min)
 
     def update(t):
-        parked = (t_pk <= t) & (t < t_lv)
-        inbound = (t_gd <= t) & (t < t_pk)
-        outbound = (t_lv <= t) & (t < t_xa)
-        for k in range(n):
-            m = parked & (lvl == k)
-            parked_sc[k].set_offsets(np.column_stack([sx[m], sy[m]]) if m.any() else np.empty((0, 2)))
-            parked_sc[k].set_facecolors(col[m])
-            pos, cols = [], []
-            for i in np.flatnonzero((inbound | outbound) & (lvl == k)):
-                pts, cum = paths[sid[i]]
-                if inbound[i]:
-                    frac = (t - t_gd[i]) / max(1e-6, t_pk[i] - t_gd[i])
-                else:
-                    frac = 1 - (t - t_lv[i]) / max(1e-6, t_xa[i] - t_lv[i])
-                pos.append(_along(pts, cum, float(np.clip(frac, 0, 1))))
-                cols.append(col[i])
-            moving_sc[k].set_offsets(np.array(pos) if pos else np.empty((0, 2)))
-            moving_sc[k].set_facecolors(cols if cols else [])
+        n_parked, n_driving = replay.update(t)
         hh, mm = divmod(int(t), 60)
-        clock.set_text(f"{hh:02d}:{mm:02d}   parked {int(parked.sum())}   driving {int((inbound | outbound).sum())}")
+        clock.set_text(f"{hh:02d}:{mm:02d}   parked {n_parked}   driving {n_driving}")
         cur1.set_xdata([t / 60, t / 60])
         if cur2 is not None:
             cur2.set_xdata([t / 60, t / 60])
