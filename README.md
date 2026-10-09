@@ -6,10 +6,12 @@ Requires only Python 3.10+, `numpy` and `matplotlib` (`pip install -r requiremen
 
 ## Quick start
 
-One command installs everything and builds all outputs:
+One command installs everything, runs the whole simulation and opens each result in a window
+(rotatable 3-D garage model, traffic charts, live animated parking map, lifecycle and policy comparison).
+Close each window to move on to the next; everything is also saved to `./outputs`:
 
 ```bash
-pip install -r requirements.txt && python main.py all
+pip install -r requirements.txt && python main.py all --show
 ```
 
 Or run the pieces on their own:
