@@ -1,0 +1,50 @@
+date,category,description,cost_usd
+2036-03-01,incidents,Falling-concrete (spall) damage claim,20000
+2036-12-02,incidents,Falling-concrete (spall) damage claim,20000
+2037-03-13,closure,B1 section 2 closed: spalling hazard (CI 30),0
+2037-03-18,structural,"Emergency deck repair B1 section 2 (CI 30, 39 days)",1023978
+2037-10-03,incidents,Falling-concrete (spall) damage claim,20000
+2037-11-26,incidents,Falling-concrete (spall) damage claim,20000
+2038-02-24,closure,B1 section 3 closed: spalling hazard (CI 30),0
+2038-03-01,structural,"Emergency deck repair B1 section 3 (CI 30, 39 days)",1024166
+2038-10-20,incidents,Falling-concrete (spall) damage claim,20000
+2038-11-09,closure,B1 section 1 closed: spalling hazard (CI 30),0
+2038-11-14,structural,"Emergency deck repair B1 section 1 (CI 30, 39 days)",1024247
+2039-12-04,incidents,Falling-concrete (spall) damage claim,20000
+2040-04-22,closure,B2 section 3 closed: spalling hazard (CI 30),0
+2040-04-27,structural,"Emergency deck repair B2 section 3 (CI 30, 39 days)",1024003
+2040-08-23,incidents,Falling-concrete (spall) damage claim,20000
+2040-09-20,closure,B1 section 4 closed: spalling hazard (CI 30),0
+2040-09-25,structural,"Emergency deck repair B1 section 4 (CI 30, 39 days)",1024002
+2041-02-01,incidents,Falling-concrete (spall) damage claim,20000
+2041-02-02,closure,B3 section 3 closed: spalling hazard (CI 30),0
+2041-02-07,structural,"Emergency deck repair B3 section 3 (CI 30, 39 days)",1024094
+2041-12-15,closure,B2 section 1 closed: spalling hazard (CI 30),0
+2041-12-20,structural,"Emergency deck repair B2 section 1 (CI 30, 39 days)",1023777
+2042-08-01,incidents,B3 flooded (3 of 3 sump pumps working),133400
+2042-11-23,closure,B2 section 4 closed: spalling hazard (CI 30),0
+2042-11-28,structural,"Emergency deck repair B2 section 4 (CI 30, 39 days)",1023969
+2042-12-10,incidents,Falling-concrete (spall) damage claim,20000
+2043-01-30,incidents,Incident in poorly lit area (99% lights working),15000
+2044-02-22,incidents,Falling-concrete (spall) damage claim,20000
+2044-04-10,incidents,Falling-concrete (spall) damage claim,20000
+2044-05-04,incidents,B3 flooded (3 of 3 sump pumps working),133400
+2044-05-04,closure,B3 section 4 closed: spalling hazard (CI 27),0
+2044-05-09,closure,B3 section 1 closed: spalling hazard (CI 30),0
+2044-05-09,structural,"Emergency deck repair B3 section 4 (CI 27, 41 days)",1071374
+2044-05-14,structural,"Emergency deck repair B3 section 1 (CI 30, 39 days)",1023768
+2045-06-10,incidents,Falling-concrete (spall) damage claim,20000
+2045-07-28,incidents,Falling-concrete (spall) damage claim,20000
+2045-08-29,closure,B1 section 3 closed: spalling hazard (CI 30),0
+2045-09-03,structural,"Emergency deck repair B1 section 3 (CI 30, 39 days)",1023932
+2045-09-10,incidents,Falling-concrete (spall) damage claim,20000
+2045-11-19,incidents,Incident in poorly lit area (99% lights working),15000
+2045-12-08,closure,B3 section 2 closed: spalling hazard (CI 30),0
+2045-12-09,closure,B2 section 2 closed: spalling hazard (CI 30),0
+2045-12-13,structural,"Emergency deck repair B3 section 2 (CI 30, 39 days)",1023806
+2045-12-14,structural,"Emergency deck repair B2 section 2 (CI 30, 39 days)",1023912
+2046-05-30,incidents,B3 flooded (3 of 3 sump pumps working),133400
+2046-08-16,closure,B1 section 2 closed: spalling hazard (CI 30),0
+2046-08-21,structural,"Emergency deck repair B1 section 2 (CI 30, 39 days)",1023860
+2046-11-30,closure,B1 section 1 closed: spalling hazard (CI 30),0
+2046-12-05,structural,"Emergency deck repair B1 section 1 (CI 30, 39 days)",1023939

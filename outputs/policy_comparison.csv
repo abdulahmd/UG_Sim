@@ -1,0 +1,12 @@
+metric (mean ± 95% CI),reactive,preventive,predictive
+LCC NPV ($M),9.24 ± 0.55,5.56 ± 0.19,6.04 ± 0.20
+Structural ($M),12.80 ± 0.93,3.98 ± 0.37,4.32 ± 0.35
+Breakdown repairs ($M),1.04 ± 0.03,0.41 ± 0.02,0.14 ± 0.01
+Preventive ($M),0.00 ± 0.00,2.30 ± 0.03,2.06 ± 0.04
+Incidents/claims ($M),0.55 ± 0.18,0.21 ± 0.10,0.10 ± 0.05
+Availability (%),99.31 ± 0.06,99.67 ± 0.03,99.65 ± 0.03
+Cars turned away (k),274.19 ± 2.78,266.78 ± 1.70,261.05 ± 1.83
+Floods,2.67 ± 1.31,1.27 ± 0.70,0.60 ± 0.35
+Emergency repairs,12.47 ± 0.90,0.00 ± 0.00,0.00 ± 0.00
+Breakdowns,922.73 ± 6.88,543.53 ± 11.71,217.47 ± 6.18
+ADA outage days,0.93 ± 0.92,0.00 ± 0.00,0.00 ± 0.00
